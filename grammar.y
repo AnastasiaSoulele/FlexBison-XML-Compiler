@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "hashtbl.h"
 #include "token.h"
 
 
@@ -28,14 +27,15 @@ extern char* str_buf_ptr;
 int error_count=0; 
 int flag_err_type=0; // 0: Token Error (YYTEXT) || 1: String Error (STRBUF)
 int scope=0;
+int pos_number=0;
+char 
 
-HASHTBL *hashtbl;
 
 /*Specific Functions*/
 void yyerror(const char *message);
 %}
 
-%error-verbose
+%define parse.error verbose
 
 %union{
    int intval;
@@ -60,8 +60,10 @@ void yyerror(const char *message);
 %token <strval> T_COMMENT_OPEN            
 %token <strval> T_COMMENT_CLOSE          
 %token T_LINEAR_LAYOUT T_RELATIVE_LAYOUT T_TEXT_VIEW T_IMAGE_VIEW T_BUTTON T_RADIO_BUTTON T_RADIO_GROUP T_PROGRESS_BAR
-%token T_STRING 
-%token T_POSITIVE_INTEGER
+%token <strval> T_STRING 
+%token <intval> T_POSITIVE_INTEGER  //to allaksa edw
+%token <strval> T_LAYOUT_WIDTH
+%token <strval> T_LAYOUT_HEIGHT
 
 
 /*Other tokens*/
@@ -83,17 +85,17 @@ void yyerror(const char *message);
 %token <strval> T_SQUOTES                  "'"
 
 /*EOF*/
-%token <strval> T_EOF            0         "end of file"
+%token <strval> T_EOF          0           "end of file"
 
 /*Non-Terminal*/
 %type  program linearlayout linearlayoutattributes linearlayoutattribute relativelayout relativelayoutattributes relativelayoutattribute     
 %type  textview textviewattributes textviewattribute imageview imageviewattributes imageviewattribute                                         
 %type  button buttonattributes buttonattribute radiogroup radiogroupattributes radiogroupattribute          
-%type  android layout_width layout_height src                                   
+%type  android   src id orientation textColor padding checkedButton progress max                         
 %type  radiobutton  radiobuttonattributes radiobuttonattribute  progressbar progressbarattributes progressbarnattribute                       
-%type  layout_value text content contentempty element empty_content                                                                          
+%type  layout_value text content contentempty element empty_content comment                                                                       
                                                                                              
-
+%type <strval> layout_width layout_height  //to allaksa edw
 
 %start program
 
@@ -105,138 +107,187 @@ program :                 linearlayout
                         | relativelayout
                         ;
 
-linearlayout:             T_START_TAG T_LINEAR_LAYOUT linearlayoutattributes T_END_TAG content T_START_TAG T_SLASH T_LINEAR_LAYOUT T_END_TAG
+linearlayout:            T_START_TAG T_LINEAR_LAYOUT linearlayoutattributes T_END_TAG
+                        |T_START_TAG T_LINEAR_LAYOUT linearlayoutattributes T_END_TAG linearlayout
+                        ;
+                        
+
+linearlayoutattributes:      layout_width layout_height element
+                            | layout_width layout_height android_id element
+                            | layout_width layout_height android_orientation element
+                            | layout_width layout_height android_id android_orientation element
+                            ;
+
+layout_width:                T_STRING T_ASSIGN T_STRING //for positive numbers
+                                 {if(strcmp($1, "android:layout_width") == 0){
+                                    pos_number=atoi($3);
+                                    printf("%s = ''%d''\n", $1, pos_number);}
+                                  else yyerror("Expected android:layout_width");  //exei thema me to yyerror poy toy vazw string kai exei conflict me
+                                 }                                                //ayto poy exei orisei h soylele.Genika alliws 0 errors grammatika
+                            |T_STRING T_ASSIGN T_STRING //for strings
+                                {if(strcmp($1, "android:layout_width") == 0){
+                                    printf("%s = %s\n",$1 ,$3);}
+                                 else yyerror("Expected android:layout_width"); 
+                                }
+                            
+
+
+layout_height:              T_STRING T_ASSIGN  T_STRING //for positive numbers
+                                 {if(strcmp($1, "android:layout_height") == 0){
+                                    pos_number=atoi($3);
+                                    printf("%s = ''%d''\n", $1, pos_number);}
+                                  else yyerror("Expected android:layout_height"); 
+                                 }  
+                            |T_STRING T_ASSIGN T_STRING //for strings
+                                {if(strcmp($1, "android:layout_height") == 0){
+                                    printf("%s = %s\n",$1,$3);}
+                                 else yyerror("Expected android:layout_height"); 
+                                }
+                            
+
+
+android_id:                      T_STRING T_ASSIGN T_STRING 
+                                 { 
+                                 if(strcmp($1, "android:id")==0)
+                                    {
+                                        pos_number=atoi($3);
+                                        printf("%s = ''%d''\n", $1, pos_number);
+                                    }
+                                else
+                                    yyerror("Expected android:id");
+                                }
+                                ;
+
+android_orientation:              T_STRING T_ASSIGN  T_STRING 
+                                 {if(strcmp($1, "android:orientation") == 0){
+                                    printf("%s = %s\n", $1, $3);}
+                                 else yyerror("Expected android:orientation"); 
+                                 }
+
+text:                            T_STRING T_ASSIGN T_STRING 
+                                 {if(strcmp($1, "android:text") == 0){
+                                    printf("%s = %s\n", $1, $3);}
+                                 else yyerror("Expected android:text"); 
+                                }
+
+textColor:                      T_STRING T_ASSIGN T_STRING //xreiazetai  kai to hex
+                                 {if(strcmp($1, "android:textColor") == 0){
+                                    printf("%s = %s\n", $1, $3);}
+                                 else yyerror("Expected android:textColor"); 
+                                }
+
+ 
+checkedButton:                      T_STRING T_ASSIGN T_STRING 
+                                 {if(strcmp($1, "android:checkedButton") == 0){
+                                    printf("%s = %s\n", $1, $3);}
+                                 else yyerror("Expected android:checkedButton"); 
+                                }                               
+
+//progress max kai padding einai arithmoi giauto vazw to atoi gia na kanw to string noymero
+progress:                  T_STRING T_ASSIGN  T_STRING 
+                                 {if(strcmp($1, "android:progress") == 0){
+                                    int pos_number = atoi($3);
+                                    if (pos_number < 0) {
+                                      yyerror("Invalid progress value. It should be a positive integer.");
+                                    }
+                                    printf("%s = ''%d''\n", $1, pos_number);}
+                                 else yyerror("Expected android:progress"); 
+                                 }  
+
+
+padding:                   T_STRING T_ASSIGN  T_STRING 
+                                 {if(strcmp($1, "android:padding") == 0){
+                                    int pos_number = atoi($3);
+                                    if (pos_number < 0) {
+                                      yyerror("Invalid padding value. It should be a positive integer.");
+                                    }
+                                    printf("%s = ''%d''\n", $1, pos_number);}
+                                 else yyerror("Expected android:padding"); 
+                                 }  
+
+
+max:                       T_STRING T_ASSIGN  T_STRING 
+                                 {if(strcmp($1, "android:max") == 0){
+                                    int pos_number = atoi($3);
+                                    if (pos_number < 0) {
+                                      yyerror("Invalid max value. It should be a positive integer.");
+                                    }
+                                    printf("%s = ''%d''\n", $1, pos_number);}
+                                 else yyerror("Expected android:max"); 
+                                 }  
+
+
+
+
+relativelayout:          T_START_TAG T_RELATIVE_LAYOUT  relativelayoutattributes T_END_TAG element
+                        |T_START_TAG T_RELATIVE_LAYOUT  relativelayoutattributes T_END_TAG element relativelayout
                         ;
 
-linearlayoutattributes:   linearlayoutattribute
-                        | linearlayoutattribute linearlayoutattributes
-                        ;
 
-linearlayoutattribute:     android T_COLON layout_width T_ASSIGN layout_value
-                        |  android T_COLON layout_height T_ASSIGN layout_value
-                        |  android T_COLON T_ATTRIBUTE T_ASSIGN T_ATTRIBUTE_VALUE
-                        ;
-
-
-relativelayout:             T_START_TAG T_RELATIVE_LAYOUT relativelayoutattributes T_END_TAG contentempty T_START_TAG T_SLASH T_LINEAR_LAYOUT T_END_TAG
-                        ;
-
-relativelayoutattributes:   relativelayoutattribute
-                         |  relativelayoutattribute relativelayoutattributes
+relativelayoutattributes:   layout_width layout_height 
+                         |  layout_width layout_height android_id 
+                         | %empty   
                          ;
-
-relativelayoutattribute:     android T_COLON layout_width T_ASSIGN layout_value
-                         |   android T_COLON layout_height T_ASSIGN layout_value
-                         |   android T_COLON T_ATTRIBUTE T_ASSIGN T_ATTRIBUTE_VALUE
-                         ;
-
-
 
 textview:                 T_START_TAG T_TEXT_VIEW textviewattributes T_END_TAG empty_content T_START_TAG T_SLASH T_TEXT_VIEW T_END_TAG
                         ;
 
-textviewattributes:       textviewattribute
-                        | textviewattribute textviewattributes
+textviewattributes:      layout_width layout_height text
+                        |layout_width layout_height text android_id
+                        |layout_width layout_height text android_id textColor
                         ;
- 
-textviewattribute:        android T_COLON layout_width T_ASSIGN layout_value
-                        | android T_COLON layout_height T_ASSIGN layout_value
-                        | android T_COLON text T_ASSIGN T_STRING
-                        | android T_COLON T_ATTRIBUTE T_ASSIGN T_ATTRIBUTE_VALUE
-                        ;
-
 
 imageview:                T_START_TAG T_IMAGE_VIEW imageviewattributes T_END_TAG empty_content T_START_TAG T_SLASH T_IMAGE_VIEW T_END_TAG
                         ;
 
-imageviewattributes:      imageviewattribute
-                        | imageviewattribute imageviewattributes
+imageviewattributes:     layout_width layout_height src
+                        |layout_width layout_height src android_id 
+                        |layout_width layout_height src android_id padding
                         ;
-
-imageviewattribute:       android T_COLON layout_width T_ASSIGN layout_value
-                        | android T_COLON layout_height T_ASSIGN layout_value 
-                        | android T_COLON src T_ASSIGN T_STRING
-                        | android T_COLON T_ATTRIBUTE T_ASSIGN T_ATTRIBUTE_VALUE
-
-
 
 button:                   T_START_TAG T_BUTTON buttonattributes T_END_TAG empty_content T_START_TAG T_SLASH T_BUTTON T_END_TAG
                         ;
 
-buttonattributes:         buttonattribute
-                        | buttonattribute buttonattributes
+buttonattributes:        layout_width layout_height text
+                        |layout_width layout_height text android_id 
+                        |layout_width layout_height text android_id padding
                         ;
-
-
-buttonattribute:          android T_COLON layout_width T_ASSIGN layout_value
-                        | android T_COLON layout_height T_ASSIGN layout_value
-                        | android T_COLON text T_ASSIGN T_STRING
-                        | android T_COLON T_ATTRIBUTE T_ASSIGN T_ATTRIBUTE_VALUE
-                        ;
-
 
 radiogroup:               T_START_TAG T_RADIO_GROUP radiogroupattributes T_END_TAG radiobutton T_START_TAG T_SLASH T_RADIO_GROUP T_END_TAG
                         ;
 
-radiogroupattributes:     radiogroupattribute
-                        | radiogroupattribute radiogroupattributes
-                        ;
-
-radiogroupattribute:      android T_COLON layout_width T_ASSIGN layout_value
-                        | android T_COLON layout_height T_ASSIGN layout_value
-                        | android T_COLON text T_ASSIGN T_STRING
-                        | android T_COLON T_ATTRIBUTE T_ASSIGN T_ATTRIBUTE_VALUE
+radiogroupattributes:    layout_width layout_height text
+                        |layout_width layout_height text android_id
+                        |layout_width layout_height text android_id checkedButton
                         ;
 
 
 radiobutton:              T_START_TAG T_RADIO_BUTTON radiobuttonattributes T_END_TAG empty_content T_START_TAG T_SLASH T_RADIO_BUTTON T_END_TAG
                         ;
 
-radiobuttonattributes:    radiobuttonattribute
-                        | radiobuttonattribute radiobuttonattributes
+radiobuttonattributes:    layout_width layout_height text
+                        | layout_width layout_height text android_id 
                         ;
 
-radiobuttonattribute:     android T_COLON layout_width T_ASSIGN layout_value
-                        | android T_COLON layout_height T_ASSIGN layout_value
-                        | android T_COLON text T_ASSIGN T_STRING
-                        | android T_COLON T_ATTRIBUTE T_ASSIGN T_ATTRIBUTE_VALUE
-                        ;
+radiobuttonattribute:     android T_COLON layout_width T_ASSIGN layout_value layout_height T_ASSIGN layout_value text T_ASSIGN T_STRING
+                        | android T_COLON id T_ASSIGN T_STRING
 
-
-progressbar:             T_START_TAG T_PROGRESS_BAR radiobuttonattributes T_END_TAG empty_content T_START_TAG T_SLASH T_PROGRESS_BAR T_END_TAG
-                        ;
-
-progressbarattributes:    radiobuttonattribute
-                        | radiobuttonattribute radiobuttonattributes
-                        ;
-
-progressbarnattribute:    android T_COLON layout_width T_ASSIGN layout_value
-                        | android T_COLON layout_height T_ASSIGN layout_value
-                        | android T_COLON T_ATTRIBUTE T_ASSIGN T_ATTRIBUTE_VALUE
                         ;
 
 
-android:                 T_STRING
+progressbar:             T_START_TAG T_PROGRESS_BAR progressbarattributes T_END_TAG empty_content T_START_TAG T_SLASH T_PROGRESS_BAR T_END_TAG
                         ;
 
-
-layout_height:             T_STRING
-                        |  T_POSITIVE_INTEGER
+progressbarattributes:    layout_width layout_height
+                        | layout_width layout_height android_id
+                        | layout_width layout_height android_id max
+                        | layout_width layout_height android_id max progress
                         ;
 
-layout_width:             T_STRING
-                        | T_POSITIVE_INTEGER
-                        ;
-
-src:                      T_STRING
-                        ;
+                 
 
 
-layout_value:              T_STRING
-                        |  T_POSITIVE_INTEGER
-                        ;
-
-text:                      T_TEXT_CONTENT
+comment:                   T_COMMENT_OPEN T_STRING T_COMMENT_CLOSE
                         ;
 
 
@@ -251,13 +302,13 @@ contentempty:            element
                         | empty_content
                         ;
 
-element:                  linearlayout
-                        | relativelayout
+element:                                 /*ebgala to linear kai to relativelayout*/
                         | textview
                         | radiogroup
                         | radiobutton
                         | relativelayout
                         | imageview
+                        |empty_content
                         ;
 
 empty_content:          %empty {}
@@ -272,11 +323,7 @@ int main(int argc, char *argv[]){
 
     /*Διάβασμα του αρχείου*/
 
-   if(!(hashtbl = hashtbl_create(10, NULL))) {
-        fprintf(stderr, "ERROR: hashtbl_create() failed!\n");
-        exit(EXIT_FAILURE);
-    }
-
+ 
 
     if(argc > 1){
         yyin = fopen(argv[1], "r");
@@ -289,10 +336,7 @@ int main(int argc, char *argv[]){
     /*Κάνε συνατικτική ανάλυση*/
     yyparse();
 
-    hashtbl_get(hashtbl, scope); // Retrieve the last table (Scope 0);
-    hashtbl_destroy(hashtbl);
-    fclose(yyin);
-    
+
 
    if(error_count > 0){
         printf("Syntax Analysis failed due to %d errors\n", error_count);
