@@ -54,7 +54,7 @@ WHITESPACE          [ \t]
 
 "<"[a-zA-Z_][a-zA-Z0-9_]*">"                  { token_print("START_TAG"); return T_START_TAG;}
 "</"[a-zA-Z_][a-zA-Z0-9_]*">"                 { token_print("END_TAG"); return T_END_TAG;}
-"<""/>"                                     { token_print("EMPTY_TAG"); return T_EMPTY_TAG;}
+"<""/>"                                       { token_print("EMPTY_TAG"); return T_EMPTY_TAG;}
 "<"[a-zA-Z_][a-zA-Z0-9_]*"/>"                 { token_print("SELF_CLOSING_TAG"); return T_SELF_CLOSING_TAG;}
 "[a-zA-Z_][a-zA-Z0-9_]*"=\"[^\"]+\"           { token_print("ATTRIBUTE"); return T_ATTRIBUTE;}
 "[a-zA-Z_][a-zA-Z0-9_]*"="\"[^\"]+\""         { token_print("ATTRIBUTE_VALUE"); return T_ATTRIBUTE_VALUE;}
@@ -76,7 +76,8 @@ WHITESPACE          [ \t]
 \"[a-zA-Z0-9_\-\.]*\"                         { yylval.strval = strdup(yytext); return T_STRING;}
 \'[a-zA-Z0-9_\-\.]*\'                         { yylval.strval = strdup(yytext); return T_STRING;}
 [1-9][0-9]*                                   { yylval.intval = atoi(yytext); return T_POSITIVE_INTEGER;}
-                                            
+"android:layout_width"                        { yylval.strval = strdup(yytext); return T_LAYOUT_WIDTH; }   
+"android:layout_height"                        { yylval.strval = strdup(yytext); return T_LAYOUT_HEIGHT; }       //allages edw                                     
 
 
 "."                                           { token_print(T_DOT); return T_DOT;}
