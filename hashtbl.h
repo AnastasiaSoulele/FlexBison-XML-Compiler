@@ -1,7 +1,9 @@
+#include <stdlib.h>
+
 #ifndef HASHTBL_H_INCLUDE_GUARD
 #define HASHTBL_H_INCLUDE_GUARD
 
-#include<stdlib.h>
+
 
 typedef size_t hash_size;
 

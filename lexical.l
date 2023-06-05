@@ -7,7 +7,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <math.h>
-
+#include <stdbool.h>
 
 extern int flag_err_type;
 extern void yyerror(char *message);
@@ -17,7 +17,6 @@ int lineno=1;
 int line_init=-1; 
 
 /*Κρατάμε το πόσα errors έχουν προκύψει*/
-int error_count =0;
 char str_buf[256];
 char* str_buf_ptr;
 
@@ -52,66 +51,87 @@ WHITESPACE          [ \t]
 
 %%
 
-"<"[a-zA-Z_][a-zA-Z0-9_]*">"                  { token_print("START_TAG"); return T_START_TAG;}
-"</"[a-zA-Z_][a-zA-Z0-9_]*">"                 { token_print("END_TAG"); return T_END_TAG;}
-"<""/>"                                     { token_print("EMPTY_TAG"); return T_EMPTY_TAG;}
-"<"[a-zA-Z_][a-zA-Z0-9_]*"/>"                 { token_print("SELF_CLOSING_TAG"); return T_SELF_CLOSING_TAG;}
-"[a-zA-Z_][a-zA-Z0-9_]*"=\"[^\"]+\"           { token_print("ATTRIBUTE"); return T_ATTRIBUTE;}
-"[a-zA-Z_][a-zA-Z0-9_]*"="\"[^\"]+\""         { token_print("ATTRIBUTE_VALUE"); return T_ATTRIBUTE_VALUE;}
-"<\!\[CDATA\["                                { token_print("CDATA_SECTION"); return T_CDATA_SECTION;}
-"<\?xml"                                      { token_print("XML_DECLARATION"); return T_XML_DECLARATION;}
-"<\?"[a-zA-Z_][a-zA-Z0-9_]*                   { token_print("PROCESING_INSTRUCTION"); return T_PROCESING_INSTRUCTION;}
-"NAMESPACE"                                   { token_print("NAMESPACE"); return T_NAMESPACE;}
-"<!--"                                        { token_print("COMMENT_OPEN"); return T_COMMENT_OPEN;}
-"-->"                                         { token_print("COMMENT_CLOSE"); return T_COMMENT_CLOSE;}
-"LinearLayout"                                { token_print("LINEAR_LAYOUT"); return T_LINEAR_LAYOUT;}
-"RelativeLayout"                              { token_print("RELATIVE_LAYOUT"); return T_RELATIVE_LAYOUT;}
-"TextView"                                    { token_print("TEXT_VIEW"); return T_TEXT_VIEW;}
-"ImageView"                                   { token_print("IMAGE_VIEW"); return T_IMAGE_VIEW;}
-"Button"                                      { token_print("BUTTON");  return T_BUTTON;}
-"RadioButton"                                 { token_print("RADIO_BUTTON"); return T_RADIO_BUTTON;}
-"RadioGroup"                                  { token_print("RADIO_GROUP");  return T_RADIO_GROUP;}
-"ProgressBar"                                 { token_print("PROGRESS_BAR");  return T_PROGRESS_BAR;}
-"[^<>]+"                                      { yylval.strval = strdup(yytext); return T_TEXT_CONTENT;}
-\"[a-zA-Z0-9_\-\.]*\"                         { yylval.strval = strdup(yytext); return T_STRING;}
-\'[a-zA-Z0-9_\-\.]*\'                         { yylval.strval = strdup(yytext); return T_STRING;}
-[1-9][0-9]*                                   { yylval.intval = atoi(yytext); return T_POSITIVE_INTEGER;}
-                                            
+"<LinearLayout"                                             { token_print(T_LINEAR_LAYOUT); yylval.strval=strdup(yytext); return T_LINEAR_LAYOUT;}
+"<RelativeLayout"                                             { token_print(T_RELATIVE_LAYOUT); yylval.strval=strdup(yytext); return T_RELATIVE_LAYOUT;}
+"<TextView"                                             { token_print(T_TEXT_VIEW); yylval.strval=strdup(yytext); return T_TEXT_VIEW;}
+"<ImageView"                                             { token_print(T_IMAGE_VIEW); yylval.strval=strdup(yytext); return T_IMAGE_VIEW;}
+"<Button"                                             { token_print( T_BUTTON); yylval.strval=strdup(yytext); return T_BUTTON;}
+"<RadioButton"                                             { token_print( T_RADIO_BUTTON); yylval.strval=strdup(yytext); return T_RADIO_BUTTON;}
+"<RadioGroup"                                             { token_print( T_RADIO_GROUP); yylval.strval=strdup(yytext); return T_RADIO_GROUP;}
+"<ProgressBar"                                             { token_print( T_PROGRESS_BAR); yylval.strval=strdup(yytext); return T_PROGRESS_BAR;}
+">"                                             { token_print( T_END_TAG);   yylval.strval=strdup(yytext); return T_END_TAG;}
+"/>"                                            { token_print( T_SLASH_END_TAG);   yylval.strval=strdup(yytext); return T_SLASH_END_TAG;}
+
+"</LinearLayout>"                                { token_print( T_END_LINEAR_LAYOUT); yylval.strval=strdup(yytext); return T_END_LINEAR_LAYOUT;}
+"</RelativeLayout>"                              { token_print(T_END_RELATIVE_LAYOUT); yylval.strval=strdup(yytext); return T_END_RELATIVE_LAYOUT;}
+"</TextView>"                                    { token_print(T_END_TEXT_VIEW); yylval.strval=strdup(yytext); return T_END_TEXT_VIEW;}
+"</ImageView>"                                   { token_print(T_END_IMAGE_VIEW); yylval.strval=strdup(yytext); return T_END_IMAGE_VIEW;}
+"</Button>"                                      { token_print(T_END_BUTTON); yylval.strval=strdup(yytext);  return T_END_BUTTON;}
+"</RadioButton>"                                 { token_print(T_END_RADIO_BUTTON); yylval.strval=strdup(yytext); return T_END_RADIO_BUTTON;}
+"</RadioGroup>"                                  { token_print(T_END_RADIO_GROUP); yylval.strval=strdup(yytext);  return T_END_RADIO_GROUP;}
+"</ProgressBar>"                                 { token_print(T_END_PROGRESS_BAR); yylval.strval=strdup(yytext);  return T_END_PROGRESS_BAR;}
+
+"android:layout_width="                           {token_print(T_ANDROID_LAYOUT_WIDTH);yylval.strval=strdup(yytext);return T_ANDROID_LAYOUT_WIDTH;}
+"android:layout_height="                          {token_print(T_ANDROID_LAYOUT_HEIGHT); yylval.strval=strdup(yytext); return T_ANDROID_LAYOUT_HEIGHT;}
+"android:id="                                     {token_print(T_ANDROID_ID); yylval.strval=strdup(yytext); return T_ANDROID_ID;}
+"android:text="                                   {token_print(T_ANDROID_TEXT); yylval.strval=strdup(yytext); return T_ANDROID_TEXT;}
+"android:orientation="                            {token_print(T_ANDROID_ORIENTATION); yylval.strval=strdup(yytext); return T_ANDROID_ORIENTATION;}
+"android:src="                                    {token_print(T_ANDROID_SRC); yylval.strval=strdup(yytext); return T_ANDROID_SRC;}
+"android:padding="                                {token_print(T_ANDROID_PADDING); yylval.strval=strdup(yytext); return T_ANDROID_PADDING;}
+"android:textColor="                              {token_print(T_ANDROID_TEXTCOLOR); yylval.strval=strdup(yytext); return T_ANDROID_TEXTCOLOR;}
+"android:checkedButton="                          {token_print(T_ANDROID_CHECKEDBUTTON); yylval.strval=strdup(yytext); return T_ANDROID_CHECKEDBUTTON;}
+"android:progress="                               {token_print(T_ANDROID_PROGRESS); yylval.strval=strdup(yytext); return T_ANDROID_PROGRESS;}
+"android:max="                                    {token_print(T_ANDROID_MAX); yylval.strval=strdup(yytext); return T_ANDROID_MAX;}
 
 
-"."                                           { token_print(T_DOT); return T_DOT;}
-","                                           { token_print(T_COMMA); return T_COMMA;}
-"="                                           { token_print(T_ASSIGN); return T_ASSIGN;}
-":"                                           { token_print(T_COLON); return T_COLON;}
-"["                                           { token_print(T_LBRACK); return T_LBRACK;}
-"]"                                           { token_print(T_RBRACK); return T_RBRACK;}
-"/"                                           { token_print(T_SLASH); return T_SLASH;}
-"!"                                           { token_print(T_EXCLAMATION); return T_EXCLAMATION ;}
-"-"                                           { token_print(T_DASH); return T_DASH;}
-"{"                                           { token_print(T_LBRACES); return T_LBRACES;}
-"}"                                           { token_print(T_RBRACES); return T_RBRACES;}
-"@"                                           { token_print(T_AT); return T_AT;}
-"?"                                           { token_print(T_QUESTION_MARK); return T_QUESTION_MARK ;}
-"_"                                           { token_print(T_UNDERSCORE); return T_UNDERSCORE;}
-"#"                                           { token_print(T_HASH); return T_HASH;}
-"'"                                           { token_print(T_SQUOTES); return T_SQUOTES;}
-
-[ \t]                                         {   } /*Αναγνώριση κενών */
+"<!--"                                        { token_print(T_COMMENT_OPEN); yylval.strval=strdup(yytext); return T_COMMENT_OPEN;}
+"-->"                                         { token_print(T_COMMENT_CLOSE); yylval.strval=strdup(yytext); return T_COMMENT_CLOSE;}
 
 
-<INITIAL><<EOF>>                              { return T_EOF;}
+\"[1-9][0-9]*\"                                 { token_print(T_POSITIVE_INTEGER); yylval.strval=strdup(yytext); return T_POSITIVE_INTEGER;}  
+\"[a-zA-Z0-9_\-\.]*\"                         { token_print(T_STRING); yylval.strval=strdup(yytext); return T_STRING;}
+\'[a-zA-Z0-9_\-\.]*\'                         { token_print(T_STRING_SINGLE_QUOTE); yylval.strval=strdup(yytext); return T_STRING_SINGLE_QUOTE;}
+
+\"[a-zA-Z0-9_\-\.]*" "[a-zA-Z0-9_\-\.]*\" { token_print(T_STRING_DQ_SPACE); yylval.strval=strdup(yytext); return T_STRING_DQ_SPACE;}
 
 
 
-%% 
 
 
-void token_print(int token_id){
+"."                                           { token_print(T_DOT); yylval.strval=strdup(yytext); return T_DOT;}
+","                                           { token_print(T_COMMA); yylval.strval=strdup(yytext); return T_COMMA;}
+"="                                           { token_print(T_ASSIGN); yylval.strval=strdup(yytext); return T_ASSIGN;}
+":"                                           { token_print(T_COLON); yylval.strval=strdup(yytext); return T_COLON;}
+"["                                           { token_print(T_LBRACK); yylval.strval=strdup(yytext); return T_LBRACK;}
+"]"                                           { token_print(T_RBRACK); yylval.strval=strdup(yytext); return T_RBRACK;}
+"/"                                           { token_print(T_SLASH); yylval.strval=strdup(yytext); return T_SLASH;}
+"!"                                           { token_print(T_EXCLAMATION); yylval.strval=strdup(yytext); return T_EXCLAMATION ;}
+"-"                                           { token_print(T_DASH); yylval.strval=strdup(yytext); return T_DASH;}
+"{"                                           { token_print(T_LBRACES); yylval.strval=strdup(yytext); return T_LBRACES;}
+"}"                                           { token_print(T_RBRACES); yylval.strval=strdup(yytext); return T_RBRACES;}
+"@"                                           { token_print(T_AT); yylval.strval=strdup(yytext); return T_AT;}
+"?"                                           { token_print(T_QUESTION_MARK); yylval.strval=strdup(yytext); return T_QUESTION_MARK ;}
+"_"                                           { token_print(T_UNDERSCORE); yylval.strval=strdup(yytext); return T_UNDERSCORE;}
+"#"                                           { token_print(T_HASH); yylval.strval=strdup(yytext); return T_HASH;}
+"'"                                           { token_print(T_SQUOTES); yylval.strval=strdup(yytext); return T_SQUOTES;}
+[  \t]+                                         {   } /*Αναγνώριση κενών και \n */     
+<<EOF>>                                       { token_print(T_EOF); yylval.strval=strdup(yytext); return T_EOF;}
+.                                             { printf("UNRECOGNIZED_CHAR: %s\n", yytext); }
+
+[\n]+                                           {lineno++;}
+
+
+
+
+
+
+    
+
+%%
+
+
+void token_print(){            ////////////////////// ** error 
     if(FLEX_DEBUG && SHOW_TOKENS){
-        printf("TOKEN FOUND: %s | TOKEN NUMBER: %d | LINE: %d\n", yytext, token_id, lineno);
+        printf("TOKEN FOUND: %s  | LINE: %d\n", yytext,lineno);
     }    
 }
-
-    
-    
-    
