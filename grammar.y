@@ -95,7 +95,6 @@ int dq_string_to_int(const char* str);
 //dika moy tokens kikis
 
 
-
 /*Other tokens*/
 %left  <strval> T_DOT                      "."
 %left  <strval> T_COMMA                    ","
@@ -123,7 +122,7 @@ int dq_string_to_int(const char* str);
 %type  button buttonattributes  radiogroup radiogroupattributes           
 %type  src android_id  textColor padding checkedButton progress max android_orientation                        
 %type  radiobutton  radiobuttonattributes   progressbar progressbarattributes                        
-%type   text content contentempty element  comment                                                                       
+%type  text content contentempty element                                                                     
                                                                                   
 %type <strval> layout_width layout_height  //to allaksa edw
 
@@ -138,18 +137,18 @@ program :                 T_LINEAR_LAYOUT linearlayout2
                         ;
                             
 linearlayout:              T_LINEAR_LAYOUT linearlayoutattributes T_END_TAG element T_END_LINEAR_LAYOUT
-                        |  T_LINEAR_LAYOUT linearlayoutattributes T_END_TAG element T_END_LINEAR_LAYOUT linearlayout
+                        |  T_LINEAR_LAYOUT linearlayoutattributes T_END_TAG element  T_END_LINEAR_LAYOUT linearlayout
                         ;
                               
-linearlayout2:              linearlayoutattributes T_END_TAG element T_END_LINEAR_LAYOUT
-                        |   linearlayoutattributes T_END_TAG element T_END_LINEAR_LAYOUT linearlayout
+linearlayout2:              linearlayoutattributes T_END_TAG element  T_END_LINEAR_LAYOUT
+                        |   linearlayoutattributes T_END_TAG element  T_END_LINEAR_LAYOUT linearlayout
                         ;                      
                         
 
-linearlayoutattributes:       layout_width layout_height element
-                            | layout_width layout_height android_id element
-                            | layout_width layout_height android_orientation element
-                            | layout_width layout_height android_id android_orientation element
+linearlayoutattributes:       layout_width layout_height element 
+                            | layout_width layout_height android_id element 
+                            | layout_width layout_height android_orientation element 
+                            | layout_width layout_height android_id android_orientation element comment 
                             ;
 
 layout_width:               T_ANDROID_LAYOUT_WIDTH  T_STRING //for strings "android:layout_width=" 
@@ -340,7 +339,7 @@ src:                            T_ANDROID_SRC T_STRING
                                 ;
 
 
-relativelayout:          T_RELATIVE_LAYOUT  relativelayoutattributes T_END_RELATIVE_LAYOUT element
+relativelayout:          T_RELATIVE_LAYOUT  relativelayoutattributes T_END_TAG element T_END_RELATIVE_LAYOUT
                         |T_RELATIVE_LAYOUT  relativelayoutattributes T_END_RELATIVE_LAYOUT element relativelayout
                         ;
 
@@ -351,6 +350,7 @@ relativelayout2:           relativelayoutattributes T_END_RELATIVE_LAYOUT elemen
 
 relativelayoutattributes:   layout_width layout_height 
                          |  layout_width layout_height android_id 
+                         |  layout_width layout_height element
                          | %empty   
                          ;
 
@@ -362,12 +362,13 @@ textviewattributes:      layout_width layout_height text
                         |layout_width layout_height android_id text textColor
                         ;
 
-imageview:                T_IMAGE_VIEW  imageviewattributes T_END_IMAGE_VIEW  
+imageview:                T_IMAGE_VIEW  imageviewattributes T_SLASH_END_TAG 
                         ;
 
 imageviewattributes:     layout_width layout_height src
                         |layout_width layout_height src android_id 
                         |layout_width layout_height src android_id padding
+                        |layout_width layout_height src padding 
                         ;
 
 button:                   T_BUTTON  buttonattributes T_END_BUTTON 

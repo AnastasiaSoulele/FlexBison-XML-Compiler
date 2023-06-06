@@ -14,7 +14,7 @@ gcc -c grammar.tab.c -o grammar.tab.o
 gcc lex.yy.o grammar.tab.o -o myParser.exe
 
 
-clear
+# clear
 # Run the parser
 ./myParser.exe CodeXML.xml
 

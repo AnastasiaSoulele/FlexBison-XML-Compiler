@@ -84,15 +84,12 @@ WHITESPACE          [ \t]
 "android:max="                                    {token_print(T_ANDROID_MAX); yylval.strval=strdup(yytext); return T_ANDROID_MAX;}
 
 
-"<!--"                                        { token_print(T_COMMENT_OPEN); yylval.strval=strdup(yytext); return T_COMMENT_OPEN;}
-"-->"                                         { token_print(T_COMMENT_CLOSE); yylval.strval=strdup(yytext); return T_COMMENT_CLOSE;}
-
 
 \"[1-9][0-9]*\"                                 { token_print(T_POSITIVE_INTEGER); yylval.strval=strdup(yytext); return T_POSITIVE_INTEGER;}  
-\"[a-zA-Z0-9_\-\.]*\"                         { token_print(T_STRING); yylval.strval=strdup(yytext); return T_STRING;}
-\'[a-zA-Z0-9_\-\.]*\'                         { token_print(T_STRING_SINGLE_QUOTE); yylval.strval=strdup(yytext); return T_STRING_SINGLE_QUOTE;}
+\"[a-zA-Z0-9_\-\.]*\"                           { token_print(T_STRING); yylval.strval=strdup(yytext); return T_STRING;}
+\'[a-zA-Z0-9_\-\.]*\'                           { token_print(T_STRING_SINGLE_QUOTE); yylval.strval=strdup(yytext); return T_STRING_SINGLE_QUOTE;}  
+\"[a-zA-Z0-9_\-\.]*" "[a-zA-Z0-9_\-\.]*\"       { token_print(T_STRING_DQ_SPACE); yylval.strval=strdup(yytext); return T_STRING_DQ_SPACE;}
 
-\"[a-zA-Z0-9_\-\.]*" "[a-zA-Z0-9_\-\.]*\" { token_print(T_STRING_DQ_SPACE); yylval.strval=strdup(yytext); return T_STRING_DQ_SPACE;}
 
 
 
@@ -121,11 +118,12 @@ WHITESPACE          [ \t]
 [\n]+                                           {lineno++;}
 
 
+"<!--"                                         {BEGIN STATE_COMMENT; }  
+<STATE_COMMENT>"-->"                           { BEGIN INITIAL; }  
+<STATE_COMMENT>.                               { comment_print();} 
 
 
 
-
-    
 
 %%
 
@@ -133,5 +131,13 @@ WHITESPACE          [ \t]
 void token_print(){            ////////////////////// ** error 
     if(FLEX_DEBUG && SHOW_TOKENS){
         printf("TOKEN FOUND: %s  | LINE: %d\n", yytext,lineno);
+    }    
+}
+
+//print if comment is found 
+
+void comment_print(){            ////////////////////// ** error 
+    if(FLEX_DEBUG && SHOW_COMMENTS){
+        printf("COMMENT FOUND: %s  | LINE: %d\n", yytext,lineno);
     }    
 }
