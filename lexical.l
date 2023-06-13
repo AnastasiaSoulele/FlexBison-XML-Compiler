@@ -30,7 +30,7 @@ char* str_buf_ptr;
 %option yylineno
 
 /* Initial States */
-%x STATE_COMMENT
+%x STATE_COMMENT SKIP_COMMENT
 %x STATE_INLINE_COMMENT
 %x STATE_STRING
 
@@ -117,11 +117,16 @@ WHITESPACE          [ \t]
 
 [\n]+                                           {lineno++;}
 
-
-"<!--"                                         {BEGIN STATE_COMMENT; }  
-<STATE_COMMENT>"-->"                           { BEGIN INITIAL; }  
-<STATE_COMMENT>.                               { comment_print();} 
-
+"<!--"                  { BEGIN(STATE_COMMENT); str_buf_ptr = str_buf; *str_buf_ptr = '\0'; }
+<STATE_COMMENT>"-->"          { BEGIN(INITIAL); 
+                          if(strstr(str_buf, "--") != NULL) {
+                            fprintf(stderr, "Invalid comment on line %d: comment contains '--'\n", lineno);
+                            yyerror("Wrong token");
+                          } else {
+                            comment_print();
+                          }
+                        }
+<STATE_COMMENT>.|\n           { *str_buf_ptr = *yytext; str_buf_ptr++; *str_buf_ptr = '\0'; ECHO;}
 
 
 
