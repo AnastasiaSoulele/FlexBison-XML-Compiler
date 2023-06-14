@@ -2,28 +2,43 @@
    android:layout_width="match_parent"
    android:layout_height="match_parent"
    android:orientation="vertical">
+
 <TextView
-    android:layout_width="20"
-    android:layout_height="20"
-    android:id="9"
+    android:layout_width="20dp"
+    android:layout_height="20dp"
+    android:id="RB1"
     android:text="Dummy text"/>
+
 <RadioGroup
     android:layout_width="wrap_content"
-    android:layout_height="wrap_content">
-<RadioButton
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:id="RB2"
-    android:text="Option 2"/>
+    android:layout_height="wrap_content"> 
+
+    <RadioButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="RB2"
+        android:text="Option 2"
+        android:checkedButton="RB2"/>
+
 </RadioGroup>
+
 <!--This is a comment, ignore me! -->
 <RelativeLayout
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
+
     <ImageView
        android:layout_width="wrap_content"
        android:layout_height="wrap_content"
-       android:src="immage_name"
+       android:src="image_name"
        android:padding="50"/>
-       </RelativeLayout>      
-    </LinearLayout>
+    <ProgressBar
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="Test"
+        android:max="80"
+        android:progress="10"/> 
+
+    </RelativeLayout>
+
+</LinearLayout>

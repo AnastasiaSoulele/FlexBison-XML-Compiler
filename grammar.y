@@ -4,6 +4,10 @@
 #include <string.h>
 #include "token.h"
 #include <stdbool.h>
+#define MAX_RADIO_BUTTONS 50
+#define MAX_USED_IDS 100  // Change this to the maximum number of IDs you expect
+#define MAX_ID_LENGTH 100 // Change this to the maximum length of ID you expect
+
 
 /** Extern from Flex **/
 extern int lineno, 
@@ -29,6 +33,11 @@ int pos_number=0;
 int flag=0;  //flag gia to token ean einai swsto to android
 int valueflag=0;
 char* strint;
+char valid_radio_buttons[MAX_RADIO_BUTTONS][50];  // Array to store valid radio button ids
+int valid_radio_button_count = 0;
+int max_value = 0;  // Variable to store android:max values
+char used_ids[MAX_USED_IDS][MAX_ID_LENGTH];  // Array to store used IDs
+int used_id_count = 0;
 //char 
 
 
@@ -40,6 +49,13 @@ bool isValidPadding(const char* padding);
 bool isValidID(const char* id);
 bool containsDash(const char* str);
 int dq_string_to_int(const char* str);
+int is_valid_radio_button(const char* id); 
+// int isIdUsed(int id);
+// void addUsedId(int id); 
+int isIdUsed(char* id);
+void addUsedId(char* id);
+void addUsedIdInt(int id);
+
 %}
 
 %define parse.error verbose
@@ -142,6 +158,7 @@ linearlayout:              T_LINEAR_LAYOUT linearlayoutattributes T_END_TAG elem
                               
 linearlayout2:              linearlayoutattributes T_END_TAG element  T_END_LINEAR_LAYOUT
                         |   linearlayoutattributes T_END_TAG element  T_END_LINEAR_LAYOUT linearlayout
+                        |   linearlayoutattributes T_END_TAG element element T_END_LINEAR_LAYOUT
                         ;                      
                         
 
@@ -169,6 +186,11 @@ layout_width:               T_ANDROID_LAYOUT_WIDTH  T_STRING //for strings "andr
                                   {
                                     printf("Invalid value for android:layout_width: %s\n", $2);
                                   } 
+                           }
+
+                           | T_ANDROID_LAYOUT_WIDTH T_QUESTION_MARK
+                           {
+                            printf("\nWrong!\n");
                            }
 
                            |T_ANDROID_LAYOUT_WIDTH T_POSITIVE_INTEGER{
@@ -210,27 +232,82 @@ layout_height:               T_ANDROID_LAYOUT_HEIGHT  T_STRING //  "android:layo
                             
 
 
-android_id:                      T_ANDROID_ID T_POSITIVE_INTEGER 
-                                { flag=0;
-                                if(strcmp($1, "android:id=") == 0 || flag ==1) {
-                                    flag=1;
-                                    pos_number=dq_string_to_int($2);                        //ebgala to isValidID() na doyme ama doulevei apla prwta
-                                    printf("%s = %d\n", $1, pos_number);                                                  
+/* android_id:                      T_ANDROID_ID T_POSITIVE_INTEGER
+                                {
+                                flag = 0;
+                                if (strcmp($1, "android:id=") == 0 || flag == 1) {
+                                    flag = 1;
+                                    pos_number = dq_string_to_int($2);
+                                    printf("%s = %d\n", $1, pos_number);
+
+                                    if (isIdUsed(pos_number)) {
+                                        yyerror("The android:id value is not unique.");
+                                    } else {
+                                        addUsedId(pos_number);
+                                    }
                                 } else {
                                     yyerror("Expected android:id=");
                                 }
-                                }
-                               |T_ANDROID_ID T_STRING
-                                { flag=0;
-                                    if (strcmp($1, "android:id=")==0 || flag==1){
-                                        flag=1;
-                                        printf("%s = %s\n", $1, $2);
+                            }
+                            | T_ANDROID_ID T_STRING
+                            {
+                                flag = 0;
+                                if (strcmp($1, "android:id=") == 0 || flag == 1) {
+                                    flag = 1;
+                                    printf("%s = %s\n", $1, $2);
+                                    textid=$2;
+                                    if(isIdUsed(textid)){
+                                        yyerror("The android:id value is not unique.");
+                                    }else{
+                                        addUsedId(textid);
                                     }
-                                    else {
+                                } else {
+                                    yyerror("Expected android:id=");
+                                }
+                            }
+                            ; */
+
+
+android_id:                     T_ANDROID_ID T_POSITIVE_INTEGER
+                                    {
+                                    flag = 0;
+                                    if (strcmp($1, "android:id=") == 0 || flag == 1) {
+                                        flag = 1;
+                                        pos_number = dq_string_to_int($2);
+                                        printf("%s = %d\n", $1, pos_number);
+                                        char pos_number_str[20];  // Buffer to hold the string representation of pos_number
+                                        snprintf(pos_number_str, sizeof(pos_number_str), "%d", pos_number);
+
+                                        if (isIdUsed(pos_number_str)) {
+                                            yyerror("The android:id value is not unique.");
+                                        } else {
+                                            addUsedId(pos_number_str);
+                                        }
+                                    } else {
                                         yyerror("Expected android:id=");
                                     }
                                 }
-                                ;
+                            | T_ANDROID_ID T_STRING
+                            {
+                                flag = 0;
+                                if (strcmp($1, "android:id=") == 0 || flag == 1) {
+                                    flag = 1;
+                                    printf("%s = %s\n", $1, $2);
+                                
+                                    if(isIdUsed($2)){
+                                        yyerror("The android:id value is not unique.");
+                                    }else{
+                                        addUsedId($2);
+                                    }
+                                } else {
+                                    yyerror("Expected android:id=");
+                                }
+                            }
+                            ;
+
+
+
+
                                 
 
 
@@ -274,7 +351,7 @@ textColor:                        T_ANDROID_TEXTCOLOR T_STRING
                                   ;
 
  
-checkedButton:                 T_ANDROID_CHECKEDBUTTON T_STRING
+/* checkedButton:                 T_ANDROID_CHECKEDBUTTON T_STRING
                                 { flag=0;
                                   if (strcmp($1, "android:checkedButton=") == 0 || flag == 1) {
                                     flag=1;
@@ -284,21 +361,41 @@ checkedButton:                 T_ANDROID_CHECKEDBUTTON T_STRING
                                         yyerror("Expected android:checkedButton=");
                                          }
                                 }
-                                ;                           
+                                ;        */
+
+                                
+checkedButton:                  T_ANDROID_CHECKEDBUTTON T_STRING
+                                {
+                                    if (strcmp($1, "android:checkedButton=") == 0 || flag == 1) {
+                                        flag = 1;
+                                        if (is_valid_radio_button($2)) {
+                                            printf("%s = %s\n", $1, $2);
+                                        } else {
+                                            yyerror("Invalid android:checkedButton value");
+                                        }
+                                    } else {
+                                        yyerror("Expected android:checkedButton=");
+                                    }
+                                }
+                                ;
+                    
 
 //progress max kai padding einai arithmoi giauto vazw to atoi gia na kanw to string noymero
-progress:                  T_ANDROID_PROGRESS  T_POSITIVE_INTEGER                                     ////// ***********************************
-                                 {  flag=0;
-                                    if(strcmp($1, "android:progress=") == 0 || flag ==1){
-                                    flag=1;
-                                     pos_number = atoi($2);
-                                    if (pos_number < 0) {
-                                      yyerror("Invalid progress value. It should be a positive integer.");
-                                    }
-                                    printf("%s = ''%d''\n", $1, pos_number);}
-                                 else yyerror("Expected android:progress="); 
-                                 }
-                                 ; 
+progress:                            T_ANDROID_PROGRESS T_POSITIVE_INTEGER
+                                        {
+                                            if (strcmp($1, "android:progress=") == 0 || flag == 1) {
+                                                flag = 1;
+                                                int progress = dq_string_to_int($2);
+                                                if (progress >= 0 && progress <= max_value) {
+                                                    printf("%s = %d\n", $1, progress);
+                                                } else {
+                                                    yyerror("Invalid android:progress value");
+                                                }
+                                            } else {
+                                                yyerror("Expected android:progress=");
+                                            }
+                                        }
+                                        ;
 
 
 padding:                   T_ANDROID_PADDING T_POSITIVE_INTEGER
@@ -316,18 +413,16 @@ padding:                   T_ANDROID_PADDING T_POSITIVE_INTEGER
                             };
 
 
-max:                            T_ANDROID_MAX   T_POSITIVE_INTEGER 
-                                 {  flag=0;
-                                    if(strcmp($1, "android:max=") == 0 || flag==1){
-                                        flag=1;
-                                     pos_number = atoi($2);
-                                    if (pos_number < 0) {
-                                      yyerror("Invalid max value. It should be a positive integer.");
-                                    }
-                                    printf("%s = ''%d''\n", $1, pos_number);}
-                                 else yyerror("Expected android:max="); 
-                                 }
-                                 ;
+max:                        T_ANDROID_MAX T_POSITIVE_INTEGER
+                            {
+                                if (strcmp($1, "android:max=") == 0) {
+                                    max_value = dq_string_to_int($2);
+                                    printf("%s = %d\n", $1, max_value);
+                                } else {
+                                    yyerror("Expected android:max=");
+                                }
+                            }
+                            ;
 
 src:                            T_ANDROID_SRC T_STRING
                                 {   flag=0;
@@ -340,11 +435,16 @@ src:                            T_ANDROID_SRC T_STRING
 
 
 relativelayout:          T_RELATIVE_LAYOUT  relativelayoutattributes T_END_TAG element T_END_RELATIVE_LAYOUT
+                        |T_RELATIVE_LAYOUT  relativelayoutattributes T_END_TAG element element T_END_RELATIVE_LAYOUT
                         |T_RELATIVE_LAYOUT  relativelayoutattributes T_END_RELATIVE_LAYOUT element relativelayout
+                        |T_RELATIVE_LAYOUT  relativelayoutattributes relativelayoutattributes T_END_TAG element T_END_RELATIVE_LAYOUT
+                        |T_RELATIVE_LAYOUT  relativelayoutattributes element T_END_RELATIVE_LAYOUT progressbar progressbarattributes T_END_LINEAR_LAYOUT
+                        |T_RELATIVE_LAYOUT  relativelayoutattributes T_END_TAG element element T_END_RELATIVE_LAYOUT T_END_LINEAR_LAYOUT
                         ;
 
 relativelayout2:           relativelayoutattributes T_END_RELATIVE_LAYOUT element
                         |  relativelayoutattributes T_END_RELATIVE_LAYOUT element relativelayout   //exei idi diavastei to ena <RelativeLayout den theloyme 2o
+                        |  relativelayoutattributes T_END_RELATIVE_LAYOUT element 
                         ;
 
 
@@ -398,6 +498,7 @@ radiobutton:               T_RADIO_BUTTON  radiobuttonattributes T_SLASH_END_TAG
 
 radiobuttonattributes:    layout_width layout_height text
                         | layout_width layout_height android_id text  
+                        | layout_width layout_height android_id text checkedButton
                         ;
 
 
@@ -435,7 +536,10 @@ element:                  textview element
                         | radiogroup element
                         | radiobutton element
                         | relativelayout element
-                        | imageview element                       
+                        | imageview element  
+                        | imageview 
+                        | progressbar 
+                        | checkedButton                  
                         |%empty
                         ;                /*ebgala to linear*/
                        
@@ -591,4 +695,46 @@ int dq_string_to_int(const char* str) {
         
         return 0;
     }
+}
+
+int is_valid_radio_button(const char* id) {
+    for (int i = 0; i < valid_radio_button_count; i++) {
+        if (strcmp(valid_radio_buttons[i], id) == 0) {
+            return 1;  // Valid radio button id found
+        }
+    }
+    return 0;  // Invalid radio button id
+}
+
+/* int isIdUsed(int id) {
+    for (int i = 0; i < used_id_count; i++) {
+        if (used_ids[i] == id) {
+            return 1;  // ID is already used
+        }
+    }
+    return 0;  // ID is not used
+}
+
+void addUsedId(int id) {
+    used_ids[used_id_count++] = id;
+} */
+
+int isIdUsed(char* id) {
+    for (int i = 0; i < used_id_count; i++) {
+        if (strcmp(used_ids[i], id) == 0) {
+            return 1;  // ID is already used
+        }
+    }
+    return 0;  // ID is not used
+}
+
+void addUsedId(char* id) {
+    strncpy(used_ids[used_id_count++], id, MAX_ID_LENGTH - 1);
+    used_ids[used_id_count - 1][MAX_ID_LENGTH - 1] = '\0';  // Ensure null-termination
+}
+
+void addUsedIdInt(int id) {
+    char id_string[MAX_ID_LENGTH];
+    snprintf(id_string, sizeof(id_string), "%d", id);
+    addUsedId(id_string);
 }
