@@ -62,7 +62,7 @@ WHITESPACE          [ \t]
 ">"                                             { token_print( T_END_TAG);   yylval.strval=strdup(yytext); return T_END_TAG;}
 "/>"                                            { token_print( T_SLASH_END_TAG);   yylval.strval=strdup(yytext); return T_SLASH_END_TAG;}
 
-"</LinearLayout>"                                { token_print( T_END_LINEAR_LAYOUT); yylval.strval=strdup(yytext); return T_END_LINEAR_LAYOUT;}
+"</LinearLayout>"                                { token_print(T_END_LINEAR_LAYOUT); yylval.strval=strdup(yytext); return T_END_LINEAR_LAYOUT;}
 "</RelativeLayout>"                              { token_print(T_END_RELATIVE_LAYOUT); yylval.strval=strdup(yytext); return T_END_RELATIVE_LAYOUT;}
 "</TextView>"                                    { token_print(T_END_TEXT_VIEW); yylval.strval=strdup(yytext); return T_END_TEXT_VIEW;}
 "</ImageView>"                                   { token_print(T_END_IMAGE_VIEW); yylval.strval=strdup(yytext); return T_END_IMAGE_VIEW;}
@@ -82,6 +82,7 @@ WHITESPACE          [ \t]
 "android:checkedButton="                          {token_print(T_ANDROID_CHECKEDBUTTON); yylval.strval=strdup(yytext); return T_ANDROID_CHECKEDBUTTON;}
 "android:progress="                               {token_print(T_ANDROID_PROGRESS); yylval.strval=strdup(yytext); return T_ANDROID_PROGRESS;}
 "android:max="                                    {token_print(T_ANDROID_MAX); yylval.strval=strdup(yytext); return T_ANDROID_MAX;}
+"radio_button_child_count="                       {token_print(T_RADIO_BUTTON_CHILD_COUNT); yylval.strval = strdup(yytext); return T_RADIO_BUTTON_CHILD_COUNT; }
 
 
 

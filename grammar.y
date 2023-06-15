@@ -38,6 +38,7 @@ int valid_radio_button_count = 0;
 int max_value = 0;  // Variable to store android:max values
 char used_ids[MAX_USED_IDS][MAX_ID_LENGTH];  // Array to store used IDs
 int used_id_count = 0;
+int child_count = 0;  // Counter for child elements within <RadioGroup>    ///3
 //char 
 
 
@@ -49,12 +50,12 @@ bool isValidPadding(const char* padding);
 bool isValidID(const char* id);
 bool containsDash(const char* str);
 int dq_string_to_int(const char* str);
-int is_valid_radio_button(const char* id); 
-// int isIdUsed(int id);
-// void addUsedId(int id); 
+int is_valid_radio_button(const char* id);  
 int isIdUsed(char* id);
 void addUsedId(char* id);
 void addUsedIdInt(int id);
+void increment_child_count();
+void check_radio_group_child_count(int expected_count);
 
 %}
 
@@ -182,15 +183,17 @@ layout_width:               T_ANDROID_LAYOUT_WIDTH  T_STRING //for strings "andr
                             else 
                               yyerror("Expected android:layout_width=");
 
-                            if(valueflag==0) //an ta string != value poy prepei na exoyn
+                            if(valueflag==0 ) //an ta string != value poy prepei na exoyn
                                   {
                                     printf("Invalid value for android:layout_width: %s\n", $2);
+                                    yyerror("Invalid value.");
                                   } 
                            }
 
                            | T_ANDROID_LAYOUT_WIDTH T_QUESTION_MARK
                            {
                             printf("\nWrong!\n");
+                            yyerror("Invalid value.");
                            }
 
                            |T_ANDROID_LAYOUT_WIDTH T_POSITIVE_INTEGER{
@@ -482,14 +485,35 @@ buttonattributes:        layout_width layout_height text
 radiogroup:               T_RADIO_GROUP   radiogroupattributes T_END_TAG radiobutton T_END_RADIO_GROUP   //<RadioGroup radiogroupattributes> radiobutton </Radiogroup>
                         ;
 
-radiogroupattributes:     layout_width layout_height
+radiogroupattributes:    layout_width layout_height
                         | layout_width layout_height text
+                        | layout_width layout_height checkedButton
+                        | layout_width layout_height radiobutton
+                        | layout_width layout_height radiobutton checkedButton
                         | layout_width layout_height text android_id
                         | layout_width layout_height text android_id checkedButton
                         | layout_width layout_height text radiobutton
                         | layout_width layout_height text android_id radiobutton
                         | layout_width layout_height text android_id checkedButton radiobutton
                         ;
+
+
+/////////////////////////////////////
+
+radio_group_element:             T_RADIO_GROUP child
+                                {
+                                    // Check the child count for <RadioGroup>
+                                    check_radio_group_child_count($2);
+                                }
+                                ;
+
+
+child:                           T_RADIO_BUTTON
+                                {
+                                    // Increment child count when a <RadioButton> is encountered
+                                    increment_child_count();
+                                }
+                                ;
 
 
 radiobutton:               T_RADIO_BUTTON  radiobuttonattributes T_SLASH_END_TAG 
@@ -706,19 +730,6 @@ int is_valid_radio_button(const char* id) {
     return 0;  // Invalid radio button id
 }
 
-/* int isIdUsed(int id) {
-    for (int i = 0; i < used_id_count; i++) {
-        if (used_ids[i] == id) {
-            return 1;  // ID is already used
-        }
-    }
-    return 0;  // ID is not used
-}
-
-void addUsedId(int id) {
-    used_ids[used_id_count++] = id;
-} */
-
 int isIdUsed(char* id) {
     for (int i = 0; i < used_id_count; i++) {
         if (strcmp(used_ids[i], id) == 0) {
@@ -737,4 +748,19 @@ void addUsedIdInt(int id) {
     char id_string[MAX_ID_LENGTH];
     snprintf(id_string, sizeof(id_string), "%d", id);
     addUsedId(id_string);
+}
+
+void increment_child_count() {
+    child_count++;
+}
+
+// Function to check the number of children for <RadioGroup> 
+void check_radio_group_child_count(int expected_count) {
+    if (child_count != expected_count) {
+        char error_message[100];
+        sprintf(error_message, "Invalid number of children. Expected %d children for <RadioGroup>.", expected_count);
+        yyerror(error_message);
+    }
+    // Reset child count for the next <RadioGroup>
+    child_count = 0;
 }
