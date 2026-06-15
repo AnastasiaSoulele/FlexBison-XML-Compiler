@@ -1,0 +1,1 @@
+A compiler for XML written in C using Flex (lexical analysis) and Bison (syntax parsing). Built as a university project to demonstrate compiler design principles including tokenization, grammar rules, and parse tree construction.
